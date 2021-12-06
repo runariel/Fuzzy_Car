@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name MCU036A_Target_Device-SchDoc-rescue)(type Legacy)(uri C:/Users/Runariel/Downloads/Fuzzy/schematic/altium2kicad/MCU036A_Target_Device-SchDoc-rescue.lib)(options "")(descr ""))
+  (lib (name only_pins-eagle-import)(type Legacy)(uri ${KIPRJMOD}/only_pins-eagle-import.lib)(options "")(descr ""))
+  (lib (name ESP32-PICO-D4)(type Legacy)(uri "C:/Users/Runariel/Downloads/Fuzzy/leadando pcb terv/LIB_ESP32-PICO-D4/ESP32-PICO-D4/KiCad/ESP32-PICO-D4.lib")(options "")(descr ""))
+)
