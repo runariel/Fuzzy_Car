@@ -1,0 +1,430 @@
+#include "common.h"
+
+// Global variables and defines
+
+const char* ssid     = "Pugi";
+const char* password = "1a2b3c4d12";
+ESP8266WebServer server(80);
+
+// Variable to store the HTTP request
+String header;
+
+// Auxiliar variables to store the current output state
+String state = Stop;
+int mode = Auto;
+float mpuData[7] = {0};
+VL53L0X_RangingMeasurementData_t measure_1;
+VL53L0X_RangingMeasurementData_t measure_2;
+// Current time
+unsigned long currentTime = millis();
+// Previous time
+unsigned long previousTime = 0;
+// Define timeout time in milliseconds (example: 2000ms = 2s)
+const long timeoutTime = 2000;
+
+// object initialization
+DCMDriverL298 dcMotorDriverL298(DCMOTORDRIVERL298_PIN_ENA, DCMOTORDRIVERL298_PIN_INT1, DCMOTORDRIVERL298_PIN_INT2, DCMOTORDRIVERL298_PIN_ENB, DCMOTORDRIVERL298_PIN_INT3, DCMOTORDRIVERL298_PIN_INT4);
+Adafruit_VL53L0X distance_1 = Adafruit_VL53L0X();
+Adafruit_VL53L0X distance_2 = Adafruit_VL53L0X();
+Adafruit_MPU6050 mpu;
+
+void setID()
+{
+  //reset
+ // digitalWrite(XSHUT_SENSOR_1, LOW);
+  //digitalWrite(XSHUT_SENSOR_2, LOW);
+  //delay(10);
+  //resetn
+  //digitalWrite(XSHUT_SENSOR_1, HIGH);
+ // digitalWrite(XSHUT_SENSOR_2, HIGH);
+  //delay(10);
+  //activate Sensor_1 and shuting Sensor_2
+ // digitalWrite(XSHUT_SENSOR_1, HIGH);
+  //digitalWrite(XSHUT_SENSOR_2, LOW);
+  //Initiate Sensor_1
+  if (!distance_1.begin(ADDR_SENSOR_1)) {
+    Serial.println(F("Failed to boot VL53L0X_1"));
+    while (1);
+  }
+  delay(10);
+  //activate Sensor_2
+ // digitalWrite(XSHUT_SENSOR_2, HIGH);
+ // delay(10);
+  //Initiate Sensor_2
+//  if (!distance_2.begin(ADDR_SENSOR_2)) {
+//    Serial.println(F("Failed to boot VL53L0X_2"));
+ //   while (1);
+ // }
+
+}
+void readDistanceSensors()
+{
+  distance_1.rangingTest(&measure_1, false); // pass in 'true' to get debug data printout!
+ // distance_2.rangingTest(&measure_2, false); // pass in 'true' to get debug data printout!
+  //Serial check for Sensor_1
+  Serial.print("1: ");
+  if (measure_1.RangeStatus != 4) {  // phase failures have incorrect data
+    Serial.print("Distance (mm): "); Serial.println(measure_1.RangeMilliMeter);
+  } else {
+    Serial.println(" out of range ");
+  }
+/*
+  Serial.print("\t");
+  //Serial check for Sensor_2
+  Serial.print("2: ");
+  if (measure_2.RangeStatus != 4) {  // phase failures have incorrect data
+    Serial.print("Distance (mm): "); Serial.println(measure_2.RangeMilliMeter);
+  } else {
+    Serial.println(" out of range ");
+  }*/
+}
+void GyroSetup()
+{
+  //Setup the gyroscope
+  Serial.println("MPU6050 Found!");
+  mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
+  Serial.print("Accelerometer range set to: ");
+  switch (mpu.getAccelerometerRange()) {
+    case MPU6050_RANGE_2_G:
+      Serial.println("+-2G");
+      break;
+    case MPU6050_RANGE_4_G:
+      Serial.println("+-4G");
+      break;
+    case MPU6050_RANGE_8_G:
+      Serial.println("+-8G");
+      break;
+    case MPU6050_RANGE_16_G:
+      Serial.println("+-16G");
+      break;
+  }
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  Serial.print("Gyro range set to: ");
+  switch (mpu.getGyroRange()) {
+    case MPU6050_RANGE_250_DEG:
+      Serial.println("+- 250 deg/s");
+      break;
+    case MPU6050_RANGE_500_DEG:
+      Serial.println("+- 500 deg/s");
+      break;
+    case MPU6050_RANGE_1000_DEG:
+      Serial.println("+- 1000 deg/s");
+      break;
+    case MPU6050_RANGE_2000_DEG:
+      Serial.println("+- 2000 deg/s");
+      break;
+  }
+
+  mpu.setFilterBandwidth(MPU6050_BAND_10_HZ);
+  Serial.print("Filter bandwidth set to: ");
+  switch (mpu.getFilterBandwidth()) {
+    case MPU6050_BAND_260_HZ:
+      Serial.println("260 Hz");
+      break;
+    case MPU6050_BAND_184_HZ:
+      Serial.println("184 Hz");
+      break;
+    case MPU6050_BAND_94_HZ:
+      Serial.println("94 Hz");
+      break;
+    case MPU6050_BAND_44_HZ:
+      Serial.println("44 Hz");
+      break;
+    case MPU6050_BAND_21_HZ:
+      Serial.println("21 Hz");
+      break;
+    case MPU6050_BAND_10_HZ:
+      Serial.println("10 Hz");
+      break;
+    case MPU6050_BAND_5_HZ:
+      Serial.println("5 Hz");
+      break;
+  }
+}
+void readMPU()
+{
+  /* Get new sensor events with the readings */
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  /* Print out the values */
+  Serial.print("Acceleration X: ");
+  Serial.print(a.acceleration.x);
+  Serial.print(", Y: ");
+  Serial.print(a.acceleration.y);
+  Serial.print(", Z: ");
+  Serial.print(a.acceleration.z);
+  Serial.println(" m/s^2");
+
+  Serial.print("Rotation X: ");
+  Serial.print(g.gyro.x);
+  Serial.print(", Y: ");
+  Serial.print(g.gyro.y);
+  Serial.print(", Z: ");
+  Serial.print(g.gyro.z);
+  Serial.println(" rad/s");
+  Serial.print("Temperature: ");
+  Serial.print(temp.temperature);
+  Serial.println(" degC");
+
+  Serial.println("");
+  delay(500);
+  mpuData[0] = temp.temperature;
+  mpuData[1] = a.acceleration.x;
+  mpuData[2] = a.acceleration.y;
+  mpuData[3] = a.acceleration.z;
+  mpuData[4] = g.gyro.x;
+  mpuData[5] = g.gyro.y;
+  mpuData[6] = g.gyro.z;
+
+}
+
+
+
+const char MAIN_page[] PROGMEM = R"=====(
+<!doctype html>
+<html>
+<head>
+  <title>Data Logger</title>
+  <h1 style="text-align:center; color:red;">Iot Design Pro</h1>
+  <h3 style="text-align:center;">NodeMCU Data Logger</h3>
+  <style>
+  canvas{
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+  }
+  /* Data Table Styling*/ 
+  #dataTable {
+    font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+    text-align: center;
+  }
+  #dataTable td, #dataTable th {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+  #dataTable tr:nth-child(even){background-color: #f2f2f2;}
+  #dataTable tr:hover {background-color: #ddd;}
+  #dataTable th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    text-align: center;
+    background-color: #050505;
+    color: white;
+  }
+  </style>
+</head>
+<body>
+<div>
+  <table id="dataTable">
+    <tr><th>Time</th><th>Distance_1 (mm)</th><th>Distance_2 (mm)</th></tr>
+  </table>
+</div>
+<br>
+<br>  
+<script>
+var Tvalues = [];
+var Hvalues = [];
+var timeStamp = [];
+setInterval(function() {
+  // Call a function repetatively with 5 Second interval
+  SendDatatoWiFi();
+}, 5000); //5000mSeconds update rate
+ function SendDatatoWiFi() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+     //Push the data in array
+  var time = new Date().toLocaleTimeString();
+  var txt = this.responseText;
+  var obj = JSON.parse(txt); 
+      Tvalues.push(obj.measure_1.RangeMilliMeter);
+      Hvalues.push(obj.measure_2.RangeMilliMeter);
+      timeStamp.push(time);
+  //Update Data Table
+    var table = document.getElementById("dataTable");
+    var row = table.insertRow(1); //Add after headings
+    var cell1 = row.insertCell(0);
+    var cell2 = row.insertCell(1);
+    var cell3 = row.insertCell(2);
+    cell1.innerHTML = time;
+    cell2.innerHTML = obj.measure_1.RangeMilliMeter;
+    cell3.innerHTML = obj.measure_2.RangeMilliMeter;
+    }
+  };
+  xhttp.open("GET", "SendDatatoWiFi", true); //Handle readData server on ESP8266
+  xhttp.send();
+}
+</script>
+</body>
+</html>
+
+)=====";
+
+
+
+
+void handleRoot()
+{
+ String s = MAIN_page; //Read HTML contents
+ server.send(200, "text/html", s); //Send web page
+}
+void SendDatatoWiFi()
+{
+  String data = "{\"Distance_1(mm)\":\""+ String(measure_1.RangeMilliMeter) +"\", \"Distance_2(mm)\":\""+ String(measure_2.RangeMilliMeter) +"\"}";
+server.send(200, "text/plane", data); 
+delay(2000);
+readDistanceSensors();
+}
+void ServerSetup()
+{
+  // Connect to Wi-Fi network with SSID and password
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  // Print local IP address and start web server
+  Serial.println("");
+  Serial.println("WiFi connected.");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  server.on("/", handleRoot);      //Which routine to handle at root location. This is display page
+  server.on("/readData", SendDatatoWiFi); //This page is called by java Script AJAX
+  
+  server.begin();
+}
+
+
+void setup()
+{
+  
+  // Setup Serial which is useful for debugging
+  // Use the Serial Monitor to view printed messages
+  Serial.begin(115200);
+  while (!Serial) ; // wait for serial port to connect. Needed for native USB
+  Serial.println("start");
+
+  //Setting up Distance sensors
+ // pinMode(XSHUT_SENSOR_1,OUTPUT);
+ // pinMode(XSHUT_SENSOR_2,OUTPUT);
+ // Serial.println("Shutdown pins inited...");
+ // digitalWrite(XSHUT_SENSOR_1, LOW);
+ // digitalWrite(XSHUT_SENSOR_2, LOW);
+ // Serial.println("Both in reset mode...(pins are low)");
+  setID();
+  //Setting up Gyroscope
+ /* if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050");
+    while (1) {
+      delay(10);
+    }
+  }
+  GyroSetup();*/
+  //Setting up WiFi Server
+  ServerSetup();
+  
+  Serial.println("");
+  delay(100);
+  
+}
+void distancefunct()
+{
+
+
+  readDistanceSensors();
+  readMPU();
+   if (measure_1.RangeMilliMeter < 250)
+    {
+      dcMotorDriverL298.stopCar();
+      state = Stop;
+      
+      if (measure_1.RangeMilliMeter < 150)
+      {
+        
+        dcMotorDriverL298.goBackward(60);
+        state = Backward;
+        
+
+      }
+
+    }
+    else
+    {
+    
+       dcMotorDriverL298.goForward(65);
+        state = Forward;
+        
+   
+    }
+
+}
+
+void Serverloop()
+{
+     server.handleClient();          //Handle client requests
+}
+
+void Uartfunct()
+{
+
+
+    if (Serial.available() > 0) {
+
+      String input = Serial.readStringUntil(' ');
+      int speed;
+      if (input == "Forward")
+      {
+        speed = Serial.parseInt();
+        dcMotorDriverL298.goForward(speed);
+        input= Serial.readStringUntil(' ');
+      }
+      else if (input == "Backward")
+      {
+        speed = Serial.parseInt();
+        dcMotorDriverL298.goBackward(speed);
+       input= Serial.readStringUntil(' ');
+      }
+      else if (input == "Left")
+      {
+        speed = Serial.parseInt();
+        
+        dcMotorDriverL298.goLeft(0 ,speed);
+       input= Serial.readStringUntil(' ');
+      }
+      else if (input == "Right")
+      {
+
+        speed = Serial.parseInt();
+      
+        dcMotorDriverL298.goRight(speed , 0);
+       input= Serial.readStringUntil(' ');
+      }
+      else if (input == "Stop")
+      {
+        dcMotorDriverL298.stopCar();
+       input= Serial.readStringUntil(' ');
+      }
+
+    }
+  
+}
+void loop()
+{
+  switch (mode) {
+    case Auto: distancefunct(); break;
+    case Web: Serverloop(); break;
+    case Uart: Uartfunct(); break;
+    case MPU: readMPU(); break; 
+    case VL53L0X:readDistanceSensors();break;
+    default:
+      delay(1);
+  }
+
+
+
+}

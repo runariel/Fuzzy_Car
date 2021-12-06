@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name asd)(type KiCad)(uri "C:/Users/Runariel/Downloads/Fuzzy/leadando pcb terv/UNK_Texas Instruments_MSP-EXP430FR2355")(options "")(descr ""))
+  (lib (name WiFI_KiCad)(type KiCad)(uri "C:/Users/Runariel/Downloads/Fuzzy/leadando pcb terv/LIB_ESP32-PICO-D4/ESP32-PICO-D4/KiCad")(options "")(descr ""))
+)

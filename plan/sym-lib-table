@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name MCU036A_Target_Device-SchDoc-rescue)(type Legacy)(uri C:/Users/Runariel/Downloads/Fuzzy/schematic/altium2kicad/MCU036A_Target_Device-SchDoc-rescue.lib)(options "")(descr ""))
+  (lib (name msp430)(type Legacy)(uri "C:/Users/Runariel/Downloads/Fuzzy/leadando pcb terv/UNK_Texas Instruments_MSP-EXP430FR2355/eec.lib")(options "")(descr ""))
+)

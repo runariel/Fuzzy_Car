@@ -1,0 +1,49 @@
+//Creates new record as per request
+    //Connect to database
+    $servername = "localhost";
+    $username = "root";
+    $password = "";
+    $dbname = "sensor";
+
+
+    // Create connection
+    $conn = new mysqli($servername, $username, $password, $dbname);
+    // Check connection
+    if ($conn->connect_error) {
+        die("Database Connection failed: " . $conn->connect_error);
+    }
+
+
+    //Get current date and time
+    date\_default\_timezone_set('Asia/Kolkata');
+    $d = date("Y-m-d");
+    //echo " Date:".$d."<BR>";
+    $t = date("H:i:s");
+
+
+    if(!empty($\_POST\['sensor1'\]) || !empty($\_POST\['sensor2'\]))
+    {
+    	$sensorData1 = $_POST\['sensor1'\];
+    	$sensorData2 = $_POST\['sensor2'\];
+		$sensorData3 = $_POST\['sensor3'\];
+		$sensorData4 = $_POST\['sensor4'\];
+		$sensorData5 = $_POST\['sensor5'\];
+		$sensorData6 = $_POST\['sensor6'\];
+		$sensorData7 = $_POST\['sensor7'\];
+
+
+	    $sql = "INSERT INTO logs (sensor1, sensor2,sensor3,sensor4,sensor5,sensor6,sensor7, Date, Time) VALUES ('".$sensorData1."', '".$sensorData2."', '".$sensorData3."', '".$sensorData4."', '".$sensorData5."', '".$sensorData6."', '".$sensorData7."', '".$d."', '".$t."')";
+
+
+		if ($conn->query($sql) === TRUE) {
+		    echo "OK";
+		} else {
+		    echo "Error: " . $sql . "<br>" . $conn->error;
+		}
+	}
+
+
+
+
+	$conn->close();
+?>
